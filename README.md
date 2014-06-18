@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/pardom/ActiveAndroid.png?branch=master)](https://travis-ci.org/pardom/ActiveAndroid) [![Stories in Ready](https://badge.waffle.io/pardom/ActiveAndroid.png)](http://waffle.io/pardom/ActiveAndroid)
-  Add by alexduhem:
+  # Add by alexduhem:
   - Only one instance of sqliteDabatase is used, to avoid lock exception with multi-threading
   - Possiblity to save asynchronously model with saveAsynchronous method
   - Possibility to query the database asynchronously with callback interface (i.e QueryListener and SingleQueryListener)
