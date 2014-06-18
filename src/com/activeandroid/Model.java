@@ -32,17 +32,11 @@ import java.util.List;
 
 @SuppressWarnings("unchecked")
 public abstract class Model {
-
-    /**
-     * Prime number used for hashcode() implementation.
-     */
-    private static final int HASH_PRIME = 739;
-
     //////////////////////////////////////////////////////////////////////////////////////
     // PRIVATE MEMBERS
     //////////////////////////////////////////////////////////////////////////////////////
 
-    private Long mId = null;
+    protected Long mId = null;
 
     private final TableInfo mTableInfo;
     private final String idName;
@@ -61,6 +55,19 @@ public abstract class Model {
 
     public final Long getId() {
         return mId;
+    }
+
+    public final void setId(Long id) {
+        mId = id;
+    }
+
+    public final void deleteAsynchronous() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                delete();
+            }
+        }).start();
     }
 
     public final void delete() {
@@ -94,8 +101,8 @@ public abstract class Model {
                             fieldType = value.getClass();
                             // check that the serializer returned what it promised
                             if (!fieldType.equals(typeSerializer.getSerializedType())) {
-                                Log.w(String.format("TypeSerializer returned wrong type: expected a %s but got a %s",
-                                        typeSerializer.getSerializedType(), fieldType));
+                                Log.w(String.format("TypeSerializer returned wrong type: expected a %s but got a %s for %s",
+                                        typeSerializer.getSerializedType(), fieldType, fieldName));
                             }
                         }
                     }
@@ -140,7 +147,11 @@ public abstract class Model {
         if (mId == null) {
             mId = db.insert(mTableInfo.getTableName(), null, values);
         } else {
-            db.update(mTableInfo.getTableName(), values, idName + "=" + mId, null);
+            int rowAffected = db.update(mTableInfo.getTableName(), values, idName + "=" + mId, null);
+            if (rowAffected == 0) {
+                values.put(idName, mId);
+                mId = db.insert(mTableInfo.getTableName(), null, values);
+            }
         }
 
         Cache.getContext().getContentResolver()
@@ -246,6 +257,15 @@ public abstract class Model {
         }
     }
 
+    public void saveAsynchronous() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                save();
+            }
+        }).start();
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////
     // PROTECTED METHODS
     //////////////////////////////////////////////////////////////////////////////////////
@@ -265,30 +285,9 @@ public abstract class Model {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Model && this.mId != null) {
-            final Model other = (Model) obj;
+        final Model other = (Model) obj;
 
-            return this.mId.equals(other.mId)
-                    && (this.mTableInfo.getTableName().equals(other.mTableInfo.getTableName()));
-        } else {
-            return this == obj;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = HASH_PRIME;
-        hash += HASH_PRIME * (mId == null ? super.hashCode() : mId.hashCode()); //if id is null, use Object.hashCode()
-        hash += HASH_PRIME * mTableInfo.getTableName().hashCode();
-        return hash; //To change body of generated methods, choose Tools | Templates.
-    }
-
-    public void saveAsynchronous() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                save();
-            }
-        }).start();
+        return this.mId != null && (this.mTableInfo.getTableName().equals(other.mTableInfo.getTableName()))
+                && (this.mId.equals(other.mId));
     }
 }
